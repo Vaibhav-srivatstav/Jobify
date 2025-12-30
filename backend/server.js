@@ -53,7 +53,7 @@ app.get('/api/ping', (req, res) => res.json({
 
 //listen
 app.get('/', (req, res) => {
-    res.send('API WORKING')
+    res.send('Vaibhav and Prateek company')
     
 })
 
