@@ -28,7 +28,7 @@ app.use(
         crossOriginResourcePolicy:{ policy: 'cross-origin'},
     })
 )
-app.use(express.json());
+app.use(express.json());//new day
 app.use(express.urlencoded({ extended: true }))
 
 

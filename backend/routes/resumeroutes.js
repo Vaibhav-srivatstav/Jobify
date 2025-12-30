@@ -1,5 +1,5 @@
 const pdfParse = require("pdf-parse");
-const Resume = require("../models/Resume");
+const Resume = require("../models/resumemodel.js");
 
 exports.uploadResume = async (req, res, next) => {
   try {
