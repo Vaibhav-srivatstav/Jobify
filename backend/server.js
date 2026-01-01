@@ -28,7 +28,7 @@ app.use(
         crossOriginResourcePolicy:{ policy: 'cross-origin'},
     })
 )
-app.use(express.json());
+app.use(express.json());//new day
 app.use(express.urlencoded({ extended: true }))
 
 
@@ -53,7 +53,7 @@ app.get('/api/ping', (req, res) => res.json({
 
 //listen
 app.get('/', (req, res) => {
-    res.send('API WORKING')
+    res.send('Vaibhav and Prateek company')
     
 })
 
