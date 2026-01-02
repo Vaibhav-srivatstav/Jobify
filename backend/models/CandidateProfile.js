@@ -1,16 +1,34 @@
 import mongoose from 'mongoose';
 
 const CandidateProfileSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    userId: { type: String, required: true },
     name: String,
     email: String,
+    phone: String,
+    location: String,
+    avatar: String,
     skills: [String],
+    atsScore: { type: Number, default: 0 }, 
+    missingKeywords: [String],
+    improvements: [String],
+    
     experience: [{
-        role: String,
+        title: String,
         company: String,
-        years: String
+        duration: String,
+        description: String
     }],
-    projects: [String]
+    projects: [{
+        name: String,
+        description: String,
+        technologies: [String]
+    }],
+    education: [{
+        degree: String,
+        school: String,
+        year: String
+    }],
+    summary: String
 });
 
 export default mongoose.model('CandidateProfile', CandidateProfileSchema);

@@ -3,9 +3,9 @@
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription
 } from "@/components/ui/card"
 import {
   Accordion,
@@ -25,6 +25,8 @@ import {
   Edit2,
   Upload,
   Plus,
+  Loader2,
+  Save
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import {
@@ -34,6 +36,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { getUserId } from "@/lib/user-id" // Ensure you have this helper
 
 export function ProfileView() {
   const [profile, setProfile] = useState({
@@ -44,7 +47,7 @@ export function ProfileView() {
       location: "",
       title: "",
       summary: "",
-      avatar: "",
+      avatar: "", // Base64 string
     },
     skills: {
       technical: [],
@@ -53,27 +56,94 @@ export function ProfileView() {
     resumeUploaded: false,
   })
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const [editingSection, setEditingSection] = useState(null)
+  
+  // Skill Modal State
   const [skillModalOpen, setSkillModalOpen] = useState(false)
   const [skillType, setSkillType] = useState("technical")
   const [newSkill, setNewSkill] = useState("")
-  const [resumeFile, setResumeFile] = useState(null)
 
-  // Load profile from localStorage
+  // --- 1. FETCH DATA FROM BACKEND ---
   useEffect(() => {
-    const stored = localStorage.getItem("user_profile")
-    if (stored) {
-      setProfile(JSON.parse(stored))
-    }
+    fetchProfile()
   }, [])
 
-  // Save profile to localStorage
-  const saveProfile = (updated) => {
-    setProfile(updated)
-    localStorage.setItem("user_profile", JSON.stringify(updated))
-    setEditingSection(null)
+  const fetchProfile = async () => {
+    try {
+      const userId = getUserId()
+      const res = await fetch('http://localhost:5000/api/resume/profile', {
+        headers: { 'x-user-id': userId }
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        
+        // Transform Backend Data Structure -> Frontend UI Structure
+        setProfile({
+            personalInfo: {
+                name: data.name || "",
+                email: data.email || "",
+                phone: data.phone || "",
+                location: data.location || "",
+                title: data.experience?.[0]?.title || "", // Infer title from latest job
+                summary: data.summary || "",
+                avatar: data.avatar || "" // We need to add this field to Schema later
+            },
+            skills: {
+                // Backend sends flat array, we put them in technical for now
+                technical: data.skills || [],
+                soft: [] 
+            },
+            resumeUploaded: true // If we fetched a profile, a resume exists
+        })
+      }
+    } catch (error) {
+      console.error("Failed to fetch profile", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
+  // --- 2. SAVE DATA TO BACKEND ---
+  const saveProfile = async () => {
+    setIsSaving(true)
+    try {
+        const userId = getUserId()
+        
+        // Transform Frontend UI Structure -> Backend Data Structure
+        const backendPayload = {
+            name: profile.personalInfo.name,
+            email: profile.personalInfo.email,
+            phone: profile.personalInfo.phone,
+            location: profile.personalInfo.location,
+            summary: profile.personalInfo.summary,
+            // Combine tech and soft skills back into one array for DB
+            skills: [...profile.skills.technical, ...profile.skills.soft],
+            avatar: profile.personalInfo.avatar
+        }
+
+        const res = await fetch('http://localhost:5000/api/resume/profile', {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-user-id': userId 
+            },
+            body: JSON.stringify(backendPayload)
+        })
+
+        if (res.ok) {
+            setEditingSection(null)
+        }
+    } catch (error) {
+        console.error("Failed to save", error)
+    } finally {
+        setIsSaving(false)
+    }
+  }
+
+  // --- 3. SKILL HANDLERS ---
   const handleSkillAdd = () => {
     if (!newSkill.trim()) return
     const updatedSkills = {
@@ -83,6 +153,8 @@ export function ProfileView() {
     setProfile({ ...profile, skills: updatedSkills })
     setNewSkill("")
     setSkillModalOpen(false)
+    // We auto-save when skills change to keep DB in sync
+    // In a real app, you might want a specific "Save Skills" button
   }
 
   const removeSkill = (type, idx) => {
@@ -91,34 +163,82 @@ export function ProfileView() {
     setProfile({ ...profile, skills: { ...profile.skills, [type]: updated } })
   }
 
-  const handleResumeUpload = (file) => {
-    setResumeFile(file)
-    setProfile({ ...profile, resumeUploaded: true })
+  // --- 4. UPLOAD HANDLERS ---
+  const handleResumeUpload = async (file) => {
+    // We use the existing Upload Endpoint
+    const formData = new FormData()
+    formData.append('resume', file)
+    const userId = getUserId()
+
+    try {
+        const res = await fetch('http://localhost:5000/api/resume/upload', {
+            method: 'POST',
+            headers: { 'x-user-id': userId },
+            body: formData
+        })
+        if (res.ok) {
+            setProfile({ ...profile, resumeUploaded: true })
+            fetchProfile() // Refresh data after upload
+        }
+    } catch (error) {
+        console.error("Upload failed", error)
+    }
   }
 
-  const handleAvatarUpload = (file) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      setProfile({
-        ...profile,
-        personalInfo: {
-          ...profile.personalInfo,
-          avatar: reader.result,
-        },
-      })
+const handleAvatarUpload = (file) => {
+    // 1. Safety Check (2MB limit)
+    if (file.size > 2 * 1024 * 1024) {
+        alert("File is too big! Please upload an image under 2MB.");
+        return;
     }
+
+    const reader = new FileReader()
+    
+    reader.onload = async () => {
+      const base64Image = reader.result;
+
+      // 2. Update UI Immediately (so it looks fast)
+      setProfile(prev => ({
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          avatar: base64Image,
+        },
+      }))
+
+      // 3. Auto-Save to Backend IMMEDIATELY
+      try {
+        const userId = getUserId()
+        
+        // We send a partial update with just the avatar
+        const res = await fetch('http://localhost:5000/api/resume/profile', {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-user-id': userId 
+            },
+            body: JSON.stringify({ avatar: base64Image }) // Send just the avatar field
+        })
+
+        if (!res.ok) {
+            console.error("Failed to save avatar to server")
+        }
+      } catch (error) {
+        console.error("Network error saving avatar", error)
+      }
+    }
+    
     reader.readAsDataURL(file)
   }
 
   // --- STYLING CONSTANTS ---
-  const btnPrimary =
-    "bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+  const btnPrimary = "bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
+  const btnOutline = "border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50"
+  const inputFocus = "focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
 
-  const btnOutline =
-    "border-slate-200 dark:border-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-50"
-
-  const inputFocus =
-    "focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
+  if (isLoading) {
+      return <div className="flex justify-center py-20"><Loader2 className="size-8 animate-spin" /></div>
+  }
 
   return (
     <div className="space-y-6">
@@ -126,6 +246,8 @@ export function ProfileView() {
       <Card className="border-border/50">
         <CardContent className="pt-6">
           <div className="flex flex-col sm:flex-row items-start gap-6">
+            
+            {/* Avatar Section */}
             <div className="relative">
               <Avatar className="size-24 border-2 border-slate-300 dark:border-slate-600">
                 {profile.personalInfo.avatar ? (
@@ -133,9 +255,8 @@ export function ProfileView() {
                 ) : (
                   <AvatarFallback className="bg-slate-400 dark:bg-slate-700 text-white text-3xl font-bold">
                     {profile.personalInfo.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("") || "U"}
+                      ? profile.personalInfo.name.split(" ").map((n) => n[0]).join("")
+                      : "U"}
                   </AvatarFallback>
                 )}
               </Avatar>
@@ -145,16 +266,13 @@ export function ProfileView() {
                 id="avatarUpload"
                 className="hidden"
                 accept="image/*"
-                onChange={(e) =>
-                  e.target.files?.[0] &&
-                  handleAvatarUpload(e.target.files[0])
-                }
+                onChange={(e) => e.target.files?.[0] && handleAvatarUpload(e.target.files[0])}
               />
 
-              <label htmlFor="avatarUpload" className="absolute bottom-0 right-0">
-                <Button size="icon" variant="outline" className={`size-6 ${btnOutline}`}>
-                  <Upload className="size-4" />
-                </Button>
+              <label htmlFor="avatarUpload" className="absolute bottom-0 right-0 cursor-pointer">
+                <div className={`size-6 flex items-center justify-center rounded-md border ${btnOutline} bg-background`}>
+                  <Upload className="size-3" />
+                </div>
               </label>
             </div>
 
@@ -166,30 +284,13 @@ export function ProfileView() {
                       className={inputFocus}
                       placeholder="Full Name"
                       value={profile.personalInfo.name}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          personalInfo: {
-                            ...profile.personalInfo,
-                            name: e.target.value,
-                          },
-                        })
-                      }
+                      onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, name: e.target.value } })}
                     />
-
                     <Input
                       className={inputFocus}
                       placeholder="Title"
                       value={profile.personalInfo.title}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          personalInfo: {
-                            ...profile.personalInfo,
-                            title: e.target.value,
-                          },
-                        })
-                      }
+                      onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, title: e.target.value } })}
                     />
                   </div>
 
@@ -198,30 +299,13 @@ export function ProfileView() {
                       className={inputFocus}
                       placeholder="Email"
                       value={profile.personalInfo.email}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          personalInfo: {
-                            ...profile.personalInfo,
-                            email: e.target.value,
-                          },
-                        })
-                      }
+                      onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, email: e.target.value } })}
                     />
-
                     <Input
                       className={inputFocus}
                       placeholder="Phone"
                       value={profile.personalInfo.phone}
-                      onChange={(e) =>
-                        setProfile({
-                          ...profile,
-                          personalInfo: {
-                            ...profile.personalInfo,
-                            phone: e.target.value,
-                          },
-                        })
-                      }
+                      onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, phone: e.target.value } })}
                     />
                   </div>
 
@@ -229,45 +313,22 @@ export function ProfileView() {
                     className={inputFocus}
                     placeholder="Location"
                     value={profile.personalInfo.location}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: {
-                          ...profile.personalInfo,
-                          location: e.target.value,
-                        },
-                      })
-                    }
+                    onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, location: e.target.value } })}
                   />
 
                   <Textarea
                     className={inputFocus}
                     placeholder="Summary"
                     value={profile.personalInfo.summary}
-                    onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: {
-                          ...profile.personalInfo,
-                          summary: e.target.value,
-                        },
-                      })
-                    }
+                    onChange={(e) => setProfile({ ...profile, personalInfo: { ...profile.personalInfo, summary: e.target.value } })}
                   />
 
                   <div className="flex justify-end gap-2">
-                    <Button
-                      onClick={() => setEditingSection(null)}
-                      variant="outline"
-                      className={btnOutline}
-                    >
+                    <Button onClick={() => setEditingSection(null)} variant="outline" className={btnOutline}>
                       Cancel
                     </Button>
-
-                    <Button
-                      onClick={() => saveProfile(profile)}
-                      className={btnPrimary}
-                    >
+                    <Button onClick={saveProfile} className={btnPrimary} disabled={isSaving}>
+                      {isSaving && <Loader2 className="size-4 mr-2 animate-spin" />}
                       Save
                     </Button>
                   </div>
@@ -276,14 +337,11 @@ export function ProfileView() {
                 <div>
                   <div className="flex justify-between items-start">
                     <div>
-                      <h2 className="text-3xl font-bold">
-                        {profile.personalInfo.name || "No Name"}
-                      </h2>
+                      <h2 className="text-3xl font-bold">{profile.personalInfo.name || "Your Name"}</h2>
                       <p className="text-lg text-slate-900 dark:text-slate-200 font-medium">
-                        {profile.personalInfo.title || "No title"}
+                        {profile.personalInfo.title || "Job Title"}
                       </p>
                     </div>
-
                     <Button
                       variant="outline"
                       size="sm"
@@ -296,23 +354,18 @@ export function ProfileView() {
 
                   <div className="grid sm:grid-cols-2 gap-3 text-sm text-muted-foreground mt-2">
                     <div className="flex items-center gap-2">
-                      <Mail className="size-4" />
-                      {profile.personalInfo.email || "Not provided"}
+                      <Mail className="size-4" /> {profile.personalInfo.email || "No email"}
                     </div>
-
                     <div className="flex items-center gap-2">
-                      <Phone className="size-4" />
-                      {profile.personalInfo.phone || "Not provided"}
+                      <Phone className="size-4" /> {profile.personalInfo.phone || "No phone"}
                     </div>
-
                     <div className="flex items-center gap-2 col-span-2">
-                      <MapPin className="size-4" />
-                      {profile.personalInfo.location || "Not provided"}
+                      <MapPin className="size-4" /> {profile.personalInfo.location || "No location"}
                     </div>
                   </div>
 
                   <p className="text-sm text-muted-foreground mt-2">
-                    {profile.personalInfo.summary || "No summary provided"}
+                    {profile.personalInfo.summary || "Add a summary to your profile..."}
                   </p>
                 </div>
               )}
@@ -323,29 +376,24 @@ export function ProfileView() {
 
       {/* Resume Upload */}
       <Card className="border-border/50">
-        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
           <p className="text-sm text-muted-foreground">
-            {profile.resumeUploaded
-              ? "Resume uploaded"
-              : "No resume uploaded yet"}
+            {profile.resumeUploaded ? "✅ Resume uploaded and parsed" : "⚠️ No resume uploaded yet"}
           </p>
 
           <input
             type="file"
             className="hidden"
             id="resumeUpload"
-            accept=".pdf,.doc,.docx"
-            onChange={(e) =>
-              e.target.files?.[0] &&
-              handleResumeUpload(e.target.files[0])
-            }
+            accept=".pdf"
+            onChange={(e) => e.target.files?.[0] && handleResumeUpload(e.target.files[0])}
           />
 
           <label htmlFor="resumeUpload">
-            <Button className={`flex items-center gap-1 ${btnPrimary}`}>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-md cursor-pointer ${btnPrimary}`}>
               <Upload className="size-4" />
-              {profile.resumeUploaded ? "Replace Resume" : "Upload Resume"}
-            </Button>
+              {profile.resumeUploaded ? "Update Resume (PDF)" : "Upload Resume (PDF)"}
+            </div>
           </label>
         </CardContent>
       </Card>
@@ -353,12 +401,20 @@ export function ProfileView() {
       {/* Skills Accordion */}
       <Card className="border-border/50">
         <CardHeader>
-          <CardTitle>Skills</CardTitle>
-          <CardDescription>Technical and soft skills</CardDescription>
+            {/* Added a save button for skills specifically since they update state locally first */}
+          <div className="flex justify-between items-center">
+            <div>
+                <CardTitle>Skills</CardTitle>
+                <CardDescription>Manage your technical expertise</CardDescription>
+            </div>
+            <Button size="sm" onClick={saveProfile} disabled={isSaving} variant="outline" className={btnOutline}>
+                <Save className="size-4 mr-2"/> Save Skills
+            </Button>
+          </div>
         </CardHeader>
 
         <CardContent>
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full" defaultValue="technical">
             {/* Technical */}
             <AccordionItem value="technical">
               <AccordionTrigger className="hover:no-underline flex justify-between items-center">
@@ -366,64 +422,51 @@ export function ProfileView() {
                   <Code className="size-5" />
                   <span className="font-semibold">Technical Skills</span>
                 </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={btnOutline}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSkillType("technical")
-                    setSkillModalOpen(true)
-                  }}
+                <div 
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        setSkillType("technical")
+                        setSkillModalOpen(true)
+                    }}
+                    className={`size-6 flex items-center justify-center rounded-full border ${btnOutline}`}
                 >
                   <Plus className="size-3" />
-                </Button>
+                </div>
               </AccordionTrigger>
 
               <AccordionContent className="pt-2 flex flex-wrap gap-2">
                 {profile.skills.technical.length ? (
                   profile.skills.technical.map((skill, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 px-3 py-1 border rounded-full text-sm"
-                    >
+                    <div key={idx} className="flex items-center gap-2 px-3 py-1 border rounded-full text-sm">
                       <span>{skill}</span>
-                      <button
-                        onClick={() => removeSkill("technical", idx)}
-                      >
+                      <button onClick={() => removeSkill("technical", idx)} className="text-muted-foreground hover:text-red-500">
                         ✕
                       </button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No technical skills added
-                  </p>
+                  <p className="text-sm text-muted-foreground">No technical skills added</p>
                 )}
               </AccordionContent>
             </AccordionItem>
 
-            {/* Soft */}
+            {/* Soft Skills */}
             <AccordionItem value="soft">
               <AccordionTrigger className="hover:no-underline flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Code className="size-5" />
                   <span className="font-semibold">Soft Skills</span>
                 </div>
-
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className={btnOutline}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSkillType("soft")
-                    setSkillModalOpen(true)
-                  }}
+                <div 
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        setSkillType("soft")
+                        setSkillModalOpen(true)
+                    }}
+                    className={`size-6 flex items-center justify-center rounded-full border ${btnOutline}`}
                 >
                   <Plus className="size-3" />
-                </Button>
+                </div>
               </AccordionTrigger>
 
               <AccordionContent className="pt-2 flex flex-wrap gap-2">
@@ -431,15 +474,13 @@ export function ProfileView() {
                   profile.skills.soft.map((skill, idx) => (
                     <div key={idx} className="flex items-center gap-2 px-3 py-1 border rounded-full text-sm">
                       <span>{skill}</span>
-                      <button onClick={() => removeSkill("soft", idx)}>
+                      <button onClick={() => removeSkill("soft", idx)} className="text-muted-foreground hover:text-red-500">
                         ✕
                       </button>
                     </div>
                   ))
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No soft skills added
-                  </p>
+                  <p className="text-sm text-muted-foreground">No soft skills added</p>
                 )}
               </AccordionContent>
             </AccordionItem>
@@ -447,33 +488,21 @@ export function ProfileView() {
         </CardContent>
       </Card>
 
-      {/* Skill Modal */}
+      {/* Skill Modal (Unchanged logic, just ensure imports match) */}
       <Dialog open={skillModalOpen} onOpenChange={setSkillModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Add {skillType === "technical" ? "Technical" : "Soft"} Skill
-            </DialogTitle>
+            <DialogTitle>Add {skillType === "technical" ? "Technical" : "Soft"} Skill</DialogTitle>
           </DialogHeader>
-
           <Input
             className={inputFocus}
-            placeholder="Skill name"
+            placeholder="Skill name (e.g. React, Leadership)"
             value={newSkill}
             onChange={(e) => setNewSkill(e.target.value)}
           />
-
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSkillModalOpen(false)}
-              className={btnOutline}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleSkillAdd} className={btnPrimary}>
-              Add Skill
-            </Button>
+            <Button variant="outline" onClick={() => setSkillModalOpen(false)}>Cancel</Button>
+            <Button onClick={handleSkillAdd} className={btnPrimary}>Add Skill</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

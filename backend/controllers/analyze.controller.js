@@ -1,35 +1,62 @@
 import model from '../config/gemini.js';
 import CandidateProfile from '../models/CandidateProfile.js';
 
-const USER_ID = "65df7b123456789012345678"; 
-
 export const analyzeMatch = async (req, res) => {
     try {
+        const userId = req.user.id;
         const { jobDescription } = req.body;
-        const profile = await CandidateProfile.findOne({ userId: USER_ID });
 
-        if (!profile) return res.status(404).json({ msg: 'Profile not found' });
+        if (!jobDescription) {
+            return res.status(400).json({ msg: "Please provide a Job Description" });
+        }
 
+        // 1. Fetch the user's parsed profile
+        const profile = await CandidateProfile.findOne({ userId });
+        if (!profile) {
+            return res.status(404).json({ msg: "Resume not found. Please upload a resume first." });
+        }
+
+        // 2. Construct the Gemini Prompt
         const prompt = `
-        Compare the following Candidate Profile with the Job Description.
-        
-        Candidate Skills: ${profile.skills.join(', ')}
-        Candidate Experience: ${JSON.stringify(profile.experience)}
-        
-        Job Description:
-        ${jobDescription}
+        Act as a strict Technical Recruiter. Compare the following Candidate Profile against the Job Description.
 
-        Output strict JSON:
+        CANDIDATE PROFILE:
+        - Skills: ${profile.skills.join(', ')}
+        - Experience: ${JSON.stringify(profile.experience)}
+        - Projects: ${JSON.stringify(profile.projects)}
+
+        JOB DESCRIPTION:
+        ${jobDescription.substring(0, 5000)}
+
+        ---------------------------------------------------
+        ANALYSIS INSTRUCTIONS:
+        1. Calculate a "Match Score" (0-100) based on skills, experience years, and project relevance. Be realistic, not generous.
+        2. Identify "Missing Keywords" (Critical skills mentioned in JD but absent in Profile).
+        3. Write a "Verdict": A 2-sentence summary of whether they should apply or not.
+
+        OUTPUT JSON ONLY:
         {
-            "matchScore": (integer 0-100),
-            "missingSkills": ["Skill 1", "Skill 2"],
-            "explanation": "One sentence summary of fit."
+            "matchScore": 75,
+            "missingKeywords": ["React Native", "GraphQL"],
+            "verdict": "Strong candidate for frontend, but lacks required mobile experience.",
+            "explanation": "Candidate has excellent React skills which match 80% of the requirements..."
         }
         `;
 
+        // 3. Ask Gemini
         const result = await model.generateContent(prompt);
-        const cleanedJson = result.response.text().replace(/```json/g, '').replace(/```/g, '');
-        const analysis = JSON.parse(cleanedJson);
+        const responseText = result.response.text().replace(/```json/g, '').replace(/```/g, '');
+        
+        let analysis;
+        try {
+            analysis = JSON.parse(responseText);
+        } catch (e) {
+            analysis = { 
+                matchScore: 0, 
+                verdict: "Error analyzing match.", 
+                explanation: "AI could not process the request." 
+            };
+        }
 
         res.json(analysis);
 

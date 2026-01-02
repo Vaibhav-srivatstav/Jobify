@@ -1,69 +1,81 @@
 "use client"
 
-import React from "react"
-
+import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Loader2 } from "lucide-react"
-import { useState } from "react"
+import { Loader2, AlertCircle } from "lucide-react"
+import { getUserId } from "@/lib/user-id"
 
-export function AnalysisForm() {
+// Receive the prop here ↓
+export function AnalysisForm({ onAnalysisComplete }) {
   const [jobDescription, setJobDescription] = useState("")
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleAnalyze = async (e) => {
     e.preventDefault()
-
     if (!jobDescription.trim()) return
 
     setIsAnalyzing(true)
+    setError(null)
 
-    // Simulate analysis
-    await new Promise((resolve) => setTimeout(resolve, 2500))
+    try {
+      const userId = getUserId()
+      
+      const response = await fetch('http://localhost:5000/api/analyze/match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId
+        },
+        body: JSON.stringify({ jobDescription })
+      })
 
-    // Store analysis results
-    const mockResults = {
-      atsScore: Math.floor(Math.random() * 30) + 70, // 70-100
-      matchScore: Math.floor(Math.random() * 30) + 65, // 65-95
-      missingSkills: ["Kubernetes", "GraphQL", "CI/CD"],
-      warnings: [
-        "Resume length exceeds recommended 2 pages",
-        "Missing specific years of experience",
-        "No metrics or quantifiable achievements in recent role",
-      ],
-      timestamp: Date.now(),
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.msg || "Analysis failed")
+      }
+
+      const formattedResults = {
+        atsScore: data.matchScore,
+        matchScore: data.matchScore,
+        missingSkills: data.missingKeywords || [],
+        verdict: data.verdict,
+        explanation: data.explanation,
+        timestamp: Date.now(),
+      }
+
+      // SEND DATA TO PARENT (No LocalStorage!)
+      onAnalysisComplete(formattedResults)
+
+    } catch (err) {
+      console.error(err)
+      setError(err.message)
+    } finally {
+      setIsAnalyzing(false)
     }
-
-    localStorage.setItem("latest_analysis", JSON.stringify(mockResults))
-    window.dispatchEvent(new Event("storage"))
-
-    setIsAnalyzing(false)
   }
 
-  // --- STYLING CONSTANTS ---
-  // 1. Primary Button: Black (Light) / White (Dark)
   const btnPrimary = "bg-black text-white hover:bg-neutral-800 dark:bg-white dark:text-black dark:hover:bg-neutral-200"
-  
-  // 2. Input/Textarea: Neutral Focus Ring (Removes green glow)
   const inputFocus = "focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
 
   return (
-    <Card className="border-border/50">
+    <Card className="border-border/50 h-full">
       <CardHeader>
         <CardTitle>Job Description</CardTitle>
         <CardDescription>Paste the job description to analyze resume compatibility</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleAnalyze} className="space-y-4">
-          <div className="space-y-2">
+        <form onSubmit={handleAnalyze} className="space-y-4 h-full flex flex-col">
+          <div className="space-y-2 flex-1">
             <Label htmlFor="job-description">Job Description</Label>
             <Textarea
               id="job-description"
               placeholder="Paste the full job description here..."
-              // UPDATED: Added neutral focus ring styles
-              className={`min-h-75 resize-none ${inputFocus}`}
+              className={`min-h-[300px] resize-none ${inputFocus}`}
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               required
@@ -71,14 +83,20 @@ export function AnalysisForm() {
             <p className="text-xs text-muted-foreground">Include requirements, responsibilities, and qualifications</p>
           </div>
 
-          {/* UPDATED: Button now uses solid Black/White styles */}
+          {error && (
+            <div className="flex items-center gap-2 text-sm text-red-500 bg-red-50 p-2 rounded border border-red-200">
+               <AlertCircle className="size-4" />
+               {error}
+            </div>
+          )}
+
           <Button 
             type="submit" 
             className={`w-full ${btnPrimary}`} 
             disabled={isAnalyzing || !jobDescription.trim()}
           >
             {isAnalyzing && <Loader2 className="size-4 mr-2 animate-spin" />}
-            {isAnalyzing ? "Analyzing..." : "Analyze Match"}
+            {isAnalyzing ? "Analyzing with Gemini..." : "Analyze Match"}
           </Button>
         </form>
       </CardContent>
