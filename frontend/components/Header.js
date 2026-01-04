@@ -6,7 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+// 🔥 IMPORT AvatarImage here
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,10 +19,7 @@ import {
 import { LogOut, LogIn, Menu, X, Sun, Moon } from "lucide-react";
 import logo from "../public/logo.png";
 import logo2 from "../public/logo2.png";
-import toast from "react-hot-toast";
 import { showProfessionalToast } from "./customToast";
-
-const PUBLIC_ROUTES = ["/", "/login", "/register"];
 
 export function Header() {
   const router = useRouter();
@@ -29,36 +27,54 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  
   const [userName, setUserName] = useState("User");
+  const [userAvatar, setUserAvatar] = useState(""); // 🔥 New State for Image
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => setMounted(true), []);
   
   useEffect(() => {
-    
+    // 1. INSTANT LOAD from LocalStorage
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      const user = JSON.parse(storedUser);
-      setUserName(user.name || "User");
-      setIsLoggedIn(true);
-      return;
+      try {
+        const user = JSON.parse(storedUser);
+        setUserName(user.name || "User");
+        setUserAvatar(user.avatar || ""); // 🔥 Load the avatar immediately
+        setIsLoggedIn(true);
+      } catch (e) {
+        console.error("Error parsing stored user", e);
+      }
     }
 
+    // 2. BACKGROUND SYNC (Optional but good)
+    // We check /api/auth/me just in case the session is invalid
     const fetchUser = async () => {
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
           { credentials: "include" }
         );
-        if (!res.ok) throw new Error("Not logged in");
-
-        const data = await res.json();
-        setUserName(data.user?.name || "User");
-        setIsLoggedIn(true);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        
+        if (res.ok) {
+           const data = await res.json();
+           setUserName(data.user?.name || "User");
+           setUserAvatar(data.user?.avatar || ""); // Sync latest avatar
+           setIsLoggedIn(true);
+           // Update localStorage to keep it fresh
+           localStorage.setItem("user", JSON.stringify(data.user));
+        } else {
+           // If token is invalid, but we have localStorage, 
+           // usually we might want to clear it, or just let them stay "visually" logged in until they click something.
+           // For now, we leave it to prevent flickering.
+        }
       } catch {
-        setUserName("User");
-        setIsLoggedIn(false);
+        // Only reset if we really can't connect and have no local data
+        if (!storedUser) {
+            setUserName("User");
+            setIsLoggedIn(false);
+        }
       }
     };
 
@@ -75,17 +91,16 @@ export function Header() {
         credentials: "include",
       });
       
-    
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUserName("User");
-    showProfessionalToast("Logged out");
-    router.push("/login");
+      localStorage.removeItem("user");
+      setIsLoggedIn(false);
+      setUserName("User");
+      setUserAvatar(""); // Clear avatar
+      showProfessionalToast("Logged out");
+      router.push("/login");
     } catch (err) {
-    console.error("Logout error:", err);
-    showProfessionalToast(err.message || "Error logging out");
-  }
-
+      console.error("Logout error:", err);
+      showProfessionalToast(err.message || "Error logging out");
+    }
   };
 
   if (!mounted) return null;
@@ -150,7 +165,11 @@ export function Header() {
                   className="flex items-center gap-2 border hover:text-black border-zinc-100 shadow-xs dark:shadow-xs dark:border-zinc-900 text-black dark:text-white rounded-full px-3 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
                 >
                   <Avatar className="size-7">
-                    <AvatarFallback className="bg-white text-black text-xs font-bold">{userName.charAt(0).toUpperCase()}</AvatarFallback>
+
+                    <AvatarImage src={userAvatar || null} className="object-cover" />
+                    <AvatarFallback className="bg-white text-black text-xs font-bold">
+                        {userName ? userName.charAt(0).toUpperCase() : "U"}
+                    </AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-sm">{userName}</span>
                 </Button>

@@ -102,18 +102,15 @@ export function ResumePreview({ refreshTrigger = 0 }) {
     )
   }
 
-  // Helper for Score Color
   const getScoreColor = (score) => {
       if (score >= 80) return "text-green-500";
       if (score >= 60) return "text-yellow-500";
       return "text-red-500";
   }
 
-  // 3. Data State (Full Dashboard)
   return (
     <div className="space-y-6">
     
-    {/* ATS Analysis Card */}
     <Card className="border-border/50 bg-blue-50/50 dark:bg-blue-900/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">

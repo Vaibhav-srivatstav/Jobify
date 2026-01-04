@@ -36,7 +36,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { getUserId } from "@/lib/user-id" // Ensure you have this helper
 
 export function ProfileView() {
   const [profile, setProfile] = useState({
@@ -47,7 +46,7 @@ export function ProfileView() {
       location: "",
       title: "",
       summary: "",
-      avatar: "", // Base64 string
+      avatar: "", 
     },
     skills: {
       technical: [],
@@ -72,31 +71,29 @@ export function ProfileView() {
 
   const fetchProfile = async () => {
     try {
-      const userId = getUserId()
-      const res = await fetch('http://localhost:5000/api/resume/profile', {
-        headers: { 'x-user-id': userId }
+      const res = await fetch('http://localhost:5000/api/profile', {
+        method: 'GET',
+        credentials: 'include' 
       })
       
       if (res.ok) {
         const data = await res.json()
         
-        // Transform Backend Data Structure -> Frontend UI Structure
         setProfile({
             personalInfo: {
                 name: data.name || "",
                 email: data.email || "",
                 phone: data.phone || "",
                 location: data.location || "",
-                title: data.experience?.[0]?.title || "", // Infer title from latest job
+                title: data.experience?.[0]?.title || "", 
                 summary: data.summary || "",
-                avatar: data.avatar || "" // We need to add this field to Schema later
+                avatar: data.avatar || "" 
             },
             skills: {
-                // Backend sends flat array, we put them in technical for now
                 technical: data.skills || [],
                 soft: [] 
             },
-            resumeUploaded: true // If we fetched a profile, a resume exists
+            resumeUploaded: true 
         })
       }
     } catch (error) {
@@ -110,26 +107,20 @@ export function ProfileView() {
   const saveProfile = async () => {
     setIsSaving(true)
     try {
-        const userId = getUserId()
-        
-        // Transform Frontend UI Structure -> Backend Data Structure
         const backendPayload = {
             name: profile.personalInfo.name,
             email: profile.personalInfo.email,
             phone: profile.personalInfo.phone,
             location: profile.personalInfo.location,
             summary: profile.personalInfo.summary,
-            // Combine tech and soft skills back into one array for DB
             skills: [...profile.skills.technical, ...profile.skills.soft],
             avatar: profile.personalInfo.avatar
         }
 
-        const res = await fetch('http://localhost:5000/api/resume/profile', {
+        const res = await fetch('http://localhost:5000/api/profile', {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-user-id': userId 
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify(backendPayload)
         })
 
@@ -153,8 +144,6 @@ export function ProfileView() {
     setProfile({ ...profile, skills: updatedSkills })
     setNewSkill("")
     setSkillModalOpen(false)
-    // We auto-save when skills change to keep DB in sync
-    // In a real app, you might want a specific "Save Skills" button
   }
 
   const removeSkill = (type, idx) => {
@@ -165,28 +154,51 @@ export function ProfileView() {
 
   // --- 4. UPLOAD HANDLERS ---
   const handleResumeUpload = async (file) => {
-    // We use the existing Upload Endpoint
     const formData = new FormData()
     formData.append('resume', file)
-    const userId = getUserId()
+    
+    // Optional: Add local loading state if you want (e.g., set a spinner on the button)
 
     try {
         const res = await fetch('http://localhost:5000/api/resume/upload', {
             method: 'POST',
-            headers: { 'x-user-id': userId },
+            credentials: 'include',
             body: formData
         })
+        
         if (res.ok) {
-            setProfile({ ...profile, resumeUploaded: true })
-            fetchProfile() // Refresh data after upload
+            const data = await res.json()
+            const newProfileData = data.profile; // 🔥 The fresh data from AI
+            
+            // 🔥 IMMEDIATE UPDATE: Merge new AI data into current state
+            setProfile(prev => ({
+                ...prev,
+                personalInfo: {
+                    ...prev.personalInfo,
+                    name: newProfileData.name || prev.personalInfo.name,
+                    email: newProfileData.email || prev.personalInfo.email,
+                    phone: newProfileData.phone || prev.personalInfo.phone,
+                    location: newProfileData.location || prev.personalInfo.location,
+                    summary: newProfileData.summary || prev.personalInfo.summary,
+                    title: newProfileData.experience?.[0]?.title || prev.personalInfo.title,
+                    // Keep existing avatar unless AI found a new one (rare)
+                    avatar: newProfileData.avatar || prev.personalInfo.avatar 
+                },
+                skills: {
+                    ...prev.skills,
+                    // AI returns a single list, put them in technical
+                    technical: newProfileData.skills || [],
+                    soft: prev.skills.soft 
+                },
+                resumeUploaded: true
+            }))
         }
     } catch (error) {
         console.error("Upload failed", error)
     }
   }
 
-const handleAvatarUpload = (file) => {
-    // 1. Safety Check (2MB limit)
+  const handleAvatarUpload = (file) => {
     if (file.size > 2 * 1024 * 1024) {
         alert("File is too big! Please upload an image under 2MB.");
         return;
@@ -197,7 +209,6 @@ const handleAvatarUpload = (file) => {
     reader.onload = async () => {
       const base64Image = reader.result;
 
-      // 2. Update UI Immediately (so it looks fast)
       setProfile(prev => ({
         ...prev,
         personalInfo: {
@@ -207,21 +218,14 @@ const handleAvatarUpload = (file) => {
       }))
 
       try {
-        const userId = getUserId()
-        
-        // We send a partial update with just the avatar
-        const res = await fetch('http://localhost:5000/api/resume/profile', {
+        const res = await fetch('http://localhost:5000/api/profile', {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-user-id': userId 
-            },
-            body: JSON.stringify({ avatar: base64Image }) // Send just the avatar field
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ avatar: base64Image }) 
         })
 
-        if (!res.ok) {
-            console.error("Failed to save avatar to server")
-        }
+        if (!res.ok) console.error("Failed to save avatar to server")
       } catch (error) {
         console.error("Network error saving avatar", error)
       }
@@ -377,7 +381,7 @@ const handleAvatarUpload = (file) => {
       <Card className="border-border/50">
         <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
           <p className="text-sm text-muted-foreground">
-            {profile.resumeUploaded ? "✅ Resume uploaded and parsed" : "⚠️ No resume uploaded yet"}
+            {profile.resumeUploaded ? "Resume Uploaded" : "No resume uploaded yet"}
           </p>
 
           <input
@@ -400,7 +404,6 @@ const handleAvatarUpload = (file) => {
       {/* Skills Accordion */}
       <Card className="border-border/50">
         <CardHeader>
-            {/* Added a save button for skills specifically since they update state locally first */}
           <div className="flex justify-between items-center">
             <div>
                 <CardTitle>Skills</CardTitle>
@@ -487,7 +490,7 @@ const handleAvatarUpload = (file) => {
         </CardContent>
       </Card>
 
-      {/* Skill Modal (Unchanged logic, just ensure imports match) */}
+      {/* Skill Modal */}
       <Dialog open={skillModalOpen} onOpenChange={setSkillModalOpen}>
         <DialogContent>
           <DialogHeader>

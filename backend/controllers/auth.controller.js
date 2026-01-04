@@ -2,10 +2,11 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from "google-auth-library";
+import CandidateProfile from '../models/CandidateProfile.js';
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const sendTokenResponse = (user, res) => {
+const sendTokenResponse = async (user, res) => {
     const token = jwt.sign(
         { userId: user._id.toString() },
         process.env.JWT_SECRET || 'secret',
@@ -21,13 +22,24 @@ const sendTokenResponse = (user, res) => {
         maxAge: 30 * 24 * 60 * 60 * 1000 
     });
 
+    let avatarToSend = user.avatar;
+    try{
+        const candidateProfile = await CandidateProfile.findOne({ userId: user._id });
+        if(candidateProfile && candidateProfile.avatar){
+            avatarToSend = candidateProfile.avatar;
+        }   
+    } catch(err){
+        res.status(500).json({msg: "Server error"});
+        return;
+    }
+
     res.status(200).json({
         success: true,
         user: {
             id: user._id,
             name: user.name,
             email: user.email,
-            avatar: user.avatar
+            avatar: avatarToSend
         }
     });
 };
@@ -128,9 +140,22 @@ export const getMe = async (req, res) => {
             });
         }
 
+        let avatarToSend = user.avatar;
+        try {
+            const candidateProfile = await CandidateProfile.findOne({ userId });
+            if (candidateProfile && candidateProfile.avatar) {
+                avatarToSend = candidateProfile.avatar;
+            }
+        } catch (e) {}
+
+        const userData = {
+            ...user.toObject(),
+            avatar: avatarToSend
+        };
+
         res.status(200).json({
             success: true,
-            user
+            user: userData
         });
 
     } catch (err) {
