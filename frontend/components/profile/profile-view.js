@@ -206,7 +206,6 @@ const handleAvatarUpload = (file) => {
         },
       }))
 
-      // 3. Auto-Save to Backend IMMEDIATELY
       try {
         const userId = getUserId()
         

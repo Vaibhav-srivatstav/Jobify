@@ -1,68 +1,55 @@
 "use client"
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button" // Assuming you have this
 import { Separator } from "@/components/ui/separator"
 import { useEffect, useState } from "react"
 import {
   Mail, Phone, MapPin, Briefcase, GraduationCap, Award, Code, 
   Loader2, AlertTriangle, CheckCircle, TrendingUp, FileText, Search
 } from "lucide-react"
-import { getUserId } from "@/lib/user-id"
 
-export function ResumePreview() {
+// 🔥 Accept the refreshTrigger prop
+export function ResumePreview({ refreshTrigger = 0 }) {
   const [resumeData, setResumeData] = useState(null)
   const [isUploaded, setIsUploaded] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
 
   const fetchProfile = async () => {
-    // Check local storage first
-    const localUploaded = localStorage.getItem("resume_uploaded") === "true"
-    
-    if (!localUploaded) {
-        setIsUploaded(false)
-        setResumeData(null)
-        return
-    }
-
     setIsLoading(true)
     try {
-        const userId = getUserId()
+        // 🔥 CLEAN REQUEST: No x-user-id, just credentials
         const res = await fetch(`http://localhost:5000/api/resume/profile`, {
-            headers: { 'x-user-id': userId }
+            method: 'GET',
+            credentials: 'include' // Sends JWT Cookie
         })
         
         if (res.ok) {
             const data = await res.json()
             setResumeData(data)
             setIsUploaded(true)
-        } else if (res.status === 404) {
-            // FIX: If backend says "Not Found", reset frontend state
-            console.log("Profile not found, resetting state...")
-            localStorage.removeItem("resume_uploaded")
-            localStorage.removeItem("resume_name")
+        } else {
+            // If error, reset state
             setIsUploaded(false)
             setResumeData(null)
         }
     } catch (error) {
         console.error("Error fetching profile:", error)
+        setIsUploaded(false)
+        setResumeData(null)
     } finally {
         setIsLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchProfile()
-    const handleUpdate = () => fetchProfile()
-    window.addEventListener("resume-updated", handleUpdate)
-    return () => window.removeEventListener("resume-updated", handleUpdate)
-  }, [])
+    // 🔥 LOGIC: 
+    // If refreshTrigger is 0 (Default/Refresh), do NOTHING. Keep empty.
+    // If refreshTrigger is > 0 (After Upload), fetch data.
+    if (refreshTrigger > 0) {
+        fetchProfile()
+    }
+  }, [refreshTrigger])
 
   // 1. Loading State
   if (isLoading) {
@@ -76,12 +63,11 @@ export function ResumePreview() {
     )
   }
 
-  // 2. Empty State (The "Marketing" View you asked for)
+  // 2. Empty State (Default)
   if (!isUploaded || !resumeData) {
     return (
       <Card className="border-border/50 h-full bg-muted/20 border-dashed">
         <CardContent className="flex flex-col items-center justify-center py-16 text-center h-full space-y-6">
-          
           <div className="size-20 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
             <Search className="size-10 text-blue-600 dark:text-blue-400" />
           </div>
@@ -111,7 +97,6 @@ export function ResumePreview() {
                 <span>Improvement Tips</span>
             </div>
           </div>
-
         </CardContent>
       </Card>
     )

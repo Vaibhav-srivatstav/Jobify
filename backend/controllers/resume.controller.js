@@ -8,9 +8,8 @@ export const uploadResume = async (req, res) => {
     if (!req.file) return res.status(400).json({ msg: "No file uploaded" });
 
     const text = await parsePDF(req.file.path);
-    const userId = req.user.id;
+    const userId = req.userId;
 
-    // UPDATED PROMPT: Combines "Not a Resume" check + Your Detailed ATS Analysis
     const prompt = `
     First, analyze the following text and determine if it is a Resume/CV.
 
@@ -107,7 +106,7 @@ export const uploadResume = async (req, res) => {
     try {
         profileData = JSON.parse(responseText);
     } catch (e) {
-        // Fallback in case Gemini hallucinates
+        
         profileData = {
             name: "Parsing Error",
             summary: "The AI couldn't parse this file. It might not be text-readable or the format is too complex.",
@@ -126,17 +125,20 @@ export const uploadResume = async (req, res) => {
       profile = await CandidateProfile.create({ userId, ...profileData });
     }
 
-    fs.unlinkSync(req.file.path);
     res.json({ success: true, profile });
   } catch (err) {
     console.error(err);
     res.status(500).send("Server Error");
+  } finally{
+
+  fs.unlinkSync(req.file.path);
+    
   }
 };
 
 export const getProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
     const profile = await CandidateProfile.findOne({ userId });
     if (!profile) return res.status(404).json({ msg: "No profile found" });
     res.json(profile);
@@ -147,10 +149,8 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const updates = req.body; // Data sent from frontend form
-
-        // Find and update, return the new version ({new: true})
+        const userId = req.userId;
+        const updates = req.body; 
         const profile = await CandidateProfile.findOneAndUpdate(
             { userId },
             { $set: updates },
