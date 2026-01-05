@@ -153,11 +153,12 @@ export function ProfileView() {
   }
 
   // --- 4. UPLOAD HANDLERS ---
-  const handleResumeUpload = async (file) => {
+ const handleResumeUpload = async (file) => {
     const formData = new FormData()
     formData.append('resume', file)
     
     // Optional: Add local loading state if you want (e.g., set a spinner on the button)
+    setIsLoading(true); // Recommended: Turn on loading spinner
 
     try {
         const res = await fetch('http://localhost:5000/api/resume/upload', {
@@ -170,7 +171,7 @@ export function ProfileView() {
             const data = await res.json()
             const newProfileData = data.profile; // 🔥 The fresh data from AI
             
-            // 🔥 IMMEDIATE UPDATE: Merge new AI data into current state
+            // 1. UPDATE UI STATE (What the user sees)
             setProfile(prev => ({
                 ...prev,
                 personalInfo: {
@@ -181,20 +182,37 @@ export function ProfileView() {
                     location: newProfileData.location || prev.personalInfo.location,
                     summary: newProfileData.summary || prev.personalInfo.summary,
                     title: newProfileData.experience?.[0]?.title || prev.personalInfo.title,
-                    // Keep existing avatar unless AI found a new one (rare)
                     avatar: newProfileData.avatar || prev.personalInfo.avatar 
                 },
                 skills: {
                     ...prev.skills,
-                    // AI returns a single list, put them in technical
-                    technical: newProfileData.skills || [],
+                    technical: newProfileData.skills || [], // AI skills go here
                     soft: prev.skills.soft 
                 },
                 resumeUploaded: true
             }))
+
+            // -------------------------------------------------------
+            // 🔥 FIXED: IMMEDIATE LOCAL STORAGE UPDATE
+            // This enables the Job Cards to "see" the new skills immediately
+            // -------------------------------------------------------
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                const userObj = JSON.parse(storedUser);
+                
+                // Update the skills in local storage
+                userObj.skills = newProfileData.skills || [];
+                
+                // Save it back
+                localStorage.setItem("user", JSON.stringify(userObj));
+                
+                console.log("✅ LocalStorage updated with new Resume Skills:", userObj.skills);
+            }
         }
     } catch (error) {
         console.error("Upload failed", error)
+    } finally {
+        setIsLoading(false); // Turn off loading spinner
     }
   }
 

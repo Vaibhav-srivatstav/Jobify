@@ -13,7 +13,7 @@ export default function ResumePage() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">Resume</h1>
+            <h1 className="text-4xl font-bold mb-2">ATS Analysis</h1>
             <p className="text-muted-foreground text-lg">
               Upload and manage your resume for optimized applications
             </p>

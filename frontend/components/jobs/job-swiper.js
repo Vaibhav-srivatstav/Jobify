@@ -2,94 +2,30 @@
 
 import { JobCard } from "@/components/jobs/job-card"
 import { Button } from "@/components/ui/button"
-import { X, RotateCcw, ExternalLink, CheckCheck } from "lucide-react"
-import { useState } from "react"
+import { X, ExternalLink, CheckCheck, RotateCcw, DownloadCloud, Loader2 } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 
-// Mock Jobs with URL/source
-const MOCK_JOBS = [
-  {
-    id: "1",
-    company: "TechVision Corp",
-    role: "Senior Full Stack Developer",
-    location: "San Francisco, CA",
-    salary: "$150k - $200k",
-    type: "Full-time",
-    description:
-      "We're seeking an experienced Full Stack Developer to join our growing team. You'll work on cutting-edge web applications using React, Node.js, and AWS.",
-    requirements: ["5+ years experience", "React & TypeScript", "Node.js", "AWS", "Docker"],
-    matchScore: 92,
-    atsScore: 88,
-    source: "LinkedIn",
-    url: "https://linkedin.com/jobs/view/1",
-  },
-  {
-    id: "2",
-    company: "Innovation Labs",
-    role: "Frontend Engineer",
-    location: "Remote",
-    salary: "$120k - $160k",
-    type: "Full-time",
-    description:
-      "Join our team to build beautiful, performant user interfaces. We value clean code, great design, and exceptional user experiences.",
-    requirements: ["3+ years experience", "React", "TypeScript", "CSS/Tailwind", "Testing"],
-    matchScore: 85,
-    atsScore: 90,
-    source: "Indeed",
-    url: "https://indeed.com/jobs/view/2",
-  },
-  {
-    id: "3",
-    company: "DataScale Inc",
-    role: "Software Engineering Lead",
-    location: "New York, NY",
-    salary: "$180k - $230k",
-    type: "Full-time",
-    description:
-      "Lead a team of talented engineers building scalable data platforms. You'll architect solutions and mentor junior developers.",
-    requirements: ["7+ years experience", "Leadership", "System Design", "Python/Go", "Kubernetes"],
-    matchScore: 78,
-    atsScore: 82,
-    source: "Company Website",
-    url: "https://datascale.com/jobs/3",
-  },
-  {
-    id: "4",
-    company: "CloudFirst Solutions",
-    role: "DevOps Engineer",
-    location: "Austin, TX",
-    salary: "$130k - $170k",
-    type: "Full-time",
-    description:
-      "Help us build and maintain robust CI/CD pipelines and cloud infrastructure. Experience with AWS and Kubernetes required.",
-    requirements: ["4+ years experience", "AWS/GCP", "Kubernetes", "Terraform", "CI/CD"],
-    matchScore: 72,
-    atsScore: 85,
-    source: "LinkedIn",
-    url: "https://linkedin.com/jobs/view/4",
-  },
-  {
-    id: "5",
-    company: "StartupXYZ",
-    role: "Full Stack Engineer",
-    location: "Los Angeles, CA",
-    salary: "$110k - $150k",
-    type: "Full-time",
-    description:
-      "Early-stage startup looking for a versatile engineer to help build our MVP. Great opportunity for equity and growth.",
-    requirements: ["2+ years experience", "JavaScript/TypeScript", "React", "Node.js", "MongoDB"],
-    matchScore: 88,
-    atsScore: 91,
-    source: "Indeed",
-    url: "https://indeed.com/jobs/view/5",
-  },
-]
-
-export function JobSwiper() {
+export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
   const router = useRouter()
-  const [jobs, setJobs] = useState(MOCK_JOBS)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [swipeDirection, setSwipeDirection] = useState(null)
+
+  // Reset index ONLY if the jobs array was completely replaced (length went from >0 to different >0 but index out of bounds, or reset to 0)
+  // However, for "Load More", we want to KEEP the current index.
+  // We only reset if we did a fresh search (jobs changed drastically and index is 0)
+  useEffect(() => {
+    // If we have jobs but index is way out, reset. 
+    // Usually standard search resets 'jobs' to empty first, handling this.
+  }, [jobs])
+
+  if (!jobs || jobs.length === 0) {
+    return (
+        <div className="text-center py-10 text-muted-foreground">
+            No jobs found. Try adjusting your search.
+        </div>
+    )
+  }
 
   const currentJob = jobs[currentIndex]
 
@@ -98,24 +34,26 @@ export function JobSwiper() {
 
     setTimeout(() => {
       if (direction === "right") {
-        const applications = JSON.parse(localStorage.getItem("applications") || "[]")
-
-        applications.push({
-          ...currentJob,
-          status: "READY",
-          appliedAt: new Date().toISOString(),
-        })
-
-        localStorage.setItem("applications", JSON.stringify(applications))
-        router.push(`/apply/${currentJob.id}`)
+        if (currentJob.source === "LinkedIn" || currentJob._id.toString().startsWith("ext_") || currentJob._id.toString().startsWith("linkedin_")) {
+            if(currentJob.applyUrl) window.open(currentJob.applyUrl, '_blank');
+        } else {
+            // Local Application Logic
+            const applications = JSON.parse(localStorage.getItem("applications") || "[]")
+            if (!applications.some(app => app._id === currentJob._id)) {
+                applications.push({
+                    ...currentJob,
+                    status: "READY",
+                    appliedAt: new Date().toISOString(),
+                })
+                localStorage.setItem("applications", JSON.stringify(applications))
+            }
+            router.push(`/apply/${currentJob._id}`)
+        }
       }
 
-      if (currentIndex < jobs.length - 1) {
-        setCurrentIndex(currentIndex + 1)
-        setSwipeDirection(null)
-      } else {
-        setCurrentIndex(jobs.length)
-      }
+      // Move to next card
+      setCurrentIndex(prev => prev + 1)
+      setSwipeDirection(null)
     }, 300)
   }
 
@@ -127,34 +65,44 @@ export function JobSwiper() {
     setSwipeDirection(null)
   }
 
+  // --- END OF STACK VIEW ---
   if (currentIndex >= jobs.length) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="size-24 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6">
-          <ExternalLink className="size-12 text-black dark:text-white" />
+      <div className="flex flex-col items-center justify-center py-16 animate-in fade-in zoom-in-95 duration-500">
+        <div className="size-24 rounded-full bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center mb-6 shadow-inner">
+          <DownloadCloud className="size-10 text-black dark:text-white" />
         </div>
-
-        <h2 className="text-2xl font-bold mb-2">No more jobs!</h2>
-        <p className="text-muted-foreground mb-6">
-          You've reviewed all available positions
+        
+        <h2 className="text-2xl font-bold mb-2">You've viewed all jobs!</h2>
+        <p className="text-muted-foreground mb-6 text-center max-w-xs">
+            We can fetch more jobs matching your current criteria.
         </p>
 
-        <Button
-          onClick={handleReset}
-          variant="outline"
-          className="border-zinc-400 dark:border-zinc-700 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800"
-        >
-          <RotateCcw className="size-4 mr-2" />
-          Review Again
-        </Button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+            {/* 🔥 BROWSE SIMILAR JOBS BUTTON */}
+            <Button 
+                onClick={onLoadMore} 
+                size="lg" 
+                className="w-full font-semibold text-lg h-12 gap-2"
+                disabled={isLoadingMore}
+            >
+                {isLoadingMore ? <Loader2 className="animate-spin" /> : <ExternalLink className="size-5" />}
+                {isLoadingMore ? "Fetching..." : "Browse Similar Jobs"}
+            </Button>
+
+            <Button onClick={handleReset} variant="ghost" className="w-full text-muted-foreground">
+                <RotateCcw className="size-4 mr-2" /> Start Over
+            </Button>
+        </div>
       </div>
     )
   }
 
+  // --- CARD VIEW ---
   return (
     <div className="flex flex-col items-center gap-6 max-w-2xl mx-auto">
-      <div className="w-full">
-        <JobCard job={currentJob} swipeDirection={swipeDirection} />
+      <div className="w-full h-[500px]"> {/* Fixed height container to prevent layout shifts */}
+        <JobCard job={currentJob} swipeDirection={swipeDirection} onSwipe={handleSwipe} />
       </div>
 
       <div className="flex items-center justify-center gap-4">
@@ -162,25 +110,22 @@ export function JobSwiper() {
           size="lg"
           variant="outline"
           onClick={handleSkip}
-          className="size-16 rounded-full p-0 border-2 border-zinc-400 dark:border-zinc-700 text-black dark:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          className="size-16 rounded-full p-0 border-2 border-zinc-400 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-transform active:scale-95"
         >
           <X className="size-8" />
-          <span className="sr-only">Skip</span>
         </Button>
 
         <Button
           size="lg"
           onClick={handleApply}
-          className="size-16 rounded-full p-0 bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 border border-black dark:border-white"
+          className="size-16 rounded-full p-0 bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-transform active:scale-95"
         >
-          <CheckCheck className="size-10" />
+          {currentJob.source === "LinkedIn" ? <ExternalLink className="size-8" /> : <CheckCheck className="size-10" />}
         </Button>
       </div>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span>
-          {currentIndex + 1} / {jobs.length}
-        </span>
+        <span>Job {currentIndex + 1} of {jobs.length}</span>
       </div>
     </div>
   )

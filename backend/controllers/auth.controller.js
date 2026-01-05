@@ -23,6 +23,7 @@ const sendTokenResponse = async (user, res) => {
     });
 
     let avatarToSend = user.avatar;
+    let skillsToSend = user.skills || [];
     try{
         const candidateProfile = await CandidateProfile.findOne({ userId: user._id });
         if(candidateProfile && candidateProfile.avatar){
@@ -39,7 +40,8 @@ const sendTokenResponse = async (user, res) => {
             id: user._id,
             name: user.name,
             email: user.email,
-            avatar: avatarToSend
+            avatar: avatarToSend,
+            skills: skillsToSend
         }
     });
 };

@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema({
     password: { type: String },
     avatar: { type: String },
     googleId: { type: String },
+    skills: {type: [String], default: []},
     createdAt: { type: Date, default: Date.now }
 });
 

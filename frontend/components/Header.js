@@ -181,8 +181,8 @@ export function Header() {
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/resume">Resume</Link></DropdownMenuItem>
-                    <DropdownMenuItem asChild><Link href="/analyze">ATS Analysis</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/analyze">Matcher</Link></DropdownMenuItem>
+                    <DropdownMenuItem asChild><Link href="/resume">ATS Analysis</Link></DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive cursor-pointer">
                       <LogOut className="size-4 mr-2" /> Logout
@@ -218,7 +218,7 @@ export function Header() {
               { name: "Dashboard", path: "/dashboard" },
               { name: "Find Jobs", path: "/jobs" },
               { name: "Applications", path: "/applications" },
-              { name: "Resume", path: "/resume" },
+              { name: "ATS Analysis", path: "/resume" },
             ].map((link) => (
               <Link key={link.path} href={link.path} onClick={() => setMobileOpen(false)}>
                 {link.name}

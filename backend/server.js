@@ -3,7 +3,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import cookieParser from 'cookie-parser';
-
 import authRoutes from './routes/auth.routes.js'; // <--- NEW
 import resumeRoutes from './routes/resume.routes.js';
 import analyzeRoutes from './routes/analyze.routes.js';
@@ -35,5 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/resume', resumeRoutes);
+
+
 
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

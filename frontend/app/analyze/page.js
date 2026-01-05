@@ -13,7 +13,7 @@ export default function AnalyzePage() {
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-2">ATS Analysis</h1>
+            <h1 className="text-4xl font-bold mb-2">Resume Matcher</h1>
             <p className="text-muted-foreground text-lg">
               Analyze how well your resume matches a job description
             </p>
