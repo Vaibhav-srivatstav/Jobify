@@ -6,7 +6,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-// 🔥 IMPORT AvatarImage here
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -35,21 +34,18 @@ export function Header() {
   useEffect(() => setMounted(true), []);
   
   useEffect(() => {
-    // 1. INSTANT LOAD from LocalStorage
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser);
         setUserName(user.name || "User");
-        setUserAvatar(user.avatar || ""); // 🔥 Load the avatar immediately
+        setUserAvatar(user.avatar || ""); 
         setIsLoggedIn(true);
       } catch (e) {
         console.error("Error parsing stored user", e);
       }
     }
 
-    // 2. BACKGROUND SYNC (Optional but good)
-    // We check /api/auth/me just in case the session is invalid
     const fetchUser = async () => {
       try {
         const res = await fetch(
@@ -62,15 +58,10 @@ export function Header() {
            setUserName(data.user?.name || "User");
            setUserAvatar(data.user?.avatar || ""); // Sync latest avatar
            setIsLoggedIn(true);
-           // Update localStorage to keep it fresh
            localStorage.setItem("user", JSON.stringify(data.user));
         } else {
-           // If token is invalid, but we have localStorage, 
-           // usually we might want to clear it, or just let them stay "visually" logged in until they click something.
-           // For now, we leave it to prevent flickering.
         }
       } catch {
-        // Only reset if we really can't connect and have no local data
         if (!storedUser) {
             setUserName("User");
             setIsLoggedIn(false);
@@ -133,9 +124,9 @@ export function Header() {
             <nav className="hidden md:flex items-center gap-8 text-sm">
               {[
                 { name: "Dashboard", path: "/dashboard" },
-                { name: "Find Jobs", path: "/jobs" },
+                { name: "Jobs", path: "/jobs" },
                 { name: "Applications", path: "/applications" },
-                { name: "Resume", path: "/resume" },
+                { name: "ATS Analysis", path: "/resume" },
               ].map((link) => (
                 <Link key={link.path} href={link.path} className={navClass(link.path)}>
                   <span className="relative group">

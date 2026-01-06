@@ -3,7 +3,7 @@ import PDFParser from 'pdf2json';
 
 const parsePDF = (filePath) => {
     return new Promise((resolve, reject) => {
-        const pdfParser = new PDFParser(this, 1); // 1 means text content only
+        const pdfParser = new PDFParser(null, 1); 
 
         pdfParser.on("pdfParser_dataError", (errData) => {
             console.error("PDF Parser Error:", errData.parserError);
@@ -12,15 +12,37 @@ const parsePDF = (filePath) => {
 
         pdfParser.on("pdfParser_dataReady", (pdfData) => {
             try {
-                // Extract text from the raw data
-                const text = pdfParser.getRawTextContent();
+                let text = "";
+                
+                pdfData.Pages.forEach((page) => {
+                    page.Texts.forEach((textLine) => {
+                        textLine.R.forEach((r) => {
+                          
+                            try {
+                                text += decodeURIComponent(r.T) + " ";
+                            } catch (e) {
+                                
+                                text += r.T + " ";
+                            }
+                        });
+                    });
+                    text += "\n"; 
+                });
+
+                if (!text.trim()) {
+                    try {
+                        text = pdfParser.getRawTextContent();
+                    } catch (e) {
+                        text = "Extraction failed. PDF may be image-only or encrypted.";
+                    }
+                }
+
                 resolve(text);
             } catch (err) {
                 reject(err);
             }
         });
 
-        // Load the file
         pdfParser.loadPDF(filePath);
     });
 };
