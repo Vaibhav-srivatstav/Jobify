@@ -121,7 +121,7 @@ export function Footer() {
         {/* BOTTOM BAR */}
         <div className="mt-24 pt-8 border-t flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-sm text-zinc-500">
-            © 2025 JobSwipe AI. Built with ❤️ for job seekers everywhere.
+            © 2025 Jobify AI. Built with ❤️ for job seekers everywhere.
           </p>
 
           <div className="flex items-center gap-2 text-sm font-medium text-zinc-400">
