@@ -207,7 +207,7 @@ export function Header() {
           <div className="flex flex-col items-center gap-4 py-6 text-black dark:text-white">
             {[
               { name: "Dashboard", path: "/dashboard" },
-              { name: "Find Jobs", path: "/jobs" },
+              { name: "Jobs", path: "/jobs" },
               { name: "Applications", path: "/applications" },
               { name: "ATS Analysis", path: "/resume" },
             ].map((link) => (

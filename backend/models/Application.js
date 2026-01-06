@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 
 const ApplicationSchema = new mongoose.Schema({
-  userId: { type: String, required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required:true },
   jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
   status: {
     type: String,
-    enum: ["READY", "SUBMITTED", "FAILED"],
-    default: "READY",
+    enum: ["APPLIED", "INTERVIEW", "REJECTED", "OFFER"],
+    default: "APPLIED",
   },
   applicationPayload: Object,
   createdAt: { type: Date, default: Date.now },

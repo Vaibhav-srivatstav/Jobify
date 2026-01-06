@@ -5,18 +5,15 @@ import { Button } from "@/components/ui/button"
 import { X, ExternalLink, CheckCheck, RotateCcw, DownloadCloud, Loader2 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { showProfessionalToast } from "@/components/customToast"
 
 export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
   const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [swipeDirection, setSwipeDirection] = useState(null)
 
-  // Reset index ONLY if the jobs array was completely replaced (length went from >0 to different >0 but index out of bounds, or reset to 0)
-  // However, for "Load More", we want to KEEP the current index.
-  // We only reset if we did a fresh search (jobs changed drastically and index is 0)
   useEffect(() => {
-    // If we have jobs but index is way out, reset. 
-    // Usually standard search resets 'jobs' to empty first, handling this.
+    // Reset index logic if needed
   }, [jobs])
 
   if (!jobs || jobs.length === 0) {
@@ -32,22 +29,45 @@ export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
   const handleSwipe = (direction) => {
     setSwipeDirection(direction)
 
-    setTimeout(() => {
+    setTimeout(async () => {
       if (direction === "right") {
-        if (currentJob.source === "LinkedIn" || currentJob._id.toString().startsWith("ext_") || currentJob._id.toString().startsWith("linkedin_")) {
-            if(currentJob.applyUrl) window.open(currentJob.applyUrl, '_blank');
-        } else {
-            // Local Application Logic
-            const applications = JSON.parse(localStorage.getItem("applications") || "[]")
-            if (!applications.some(app => app._id === currentJob._id)) {
-                applications.push({
-                    ...currentJob,
-                    status: "READY",
-                    appliedAt: new Date().toISOString(),
-                })
-                localStorage.setItem("applications", JSON.stringify(applications))
+        
+        // 1. External Link Logic (Optional: Open immediately)
+        if (currentJob.applyUrl && (currentJob.source === "LinkedIn" || currentJob._id.toString().startsWith("linkedin_"))) {
+            window.open(currentJob.applyUrl, '_blank');
+        }
+
+        // 2. 🔥 API CALL: Save to Database
+        try {
+            const storedUser = localStorage.getItem("user");
+            if (!storedUser) {
+                showProfessionalToast("Please login to save jobs");
+                router.push("/login");
+                return;
             }
-            router.push(`/apply/${currentJob._id}`)
+
+            const user = JSON.parse(storedUser);
+
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/application/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    userId: user._id || user.id, // Handle different ID formats
+                    jobData: currentJob 
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                showProfessionalToast("Job saved to Applications!");
+            } else {
+                if(data.msg !== "You have already saved this job") {
+                     showProfessionalToast(data.msg || "Failed to save job");
+                }
+            }
+        } catch (err) {
+            console.error("Save error:", err);
+            showProfessionalToast("Error saving application");
         }
       }
 
@@ -79,7 +99,6 @@ export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
         </p>
 
         <div className="flex flex-col gap-3 w-full max-w-xs">
-            {/* 🔥 BROWSE SIMILAR JOBS BUTTON */}
             <Button 
                 onClick={onLoadMore} 
                 size="lg" 
@@ -101,7 +120,7 @@ export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
   // --- CARD VIEW ---
   return (
     <div className="flex flex-col items-center gap-6 max-w-2xl mx-auto">
-      <div className="w-full h-[500px]"> {/* Fixed height container to prevent layout shifts */}
+      <div className="w-full h-[500px]">
         <JobCard job={currentJob} swipeDirection={swipeDirection} onSwipe={handleSwipe} />
       </div>
 

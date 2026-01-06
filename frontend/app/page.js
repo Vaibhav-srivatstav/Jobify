@@ -1,5 +1,6 @@
 "use client";
 
+import { AnalyticsChart } from "@/components/dashboard/analytics-chart";
 import { DashboardStats } from "@/components/dashboard/dashboard-stats";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { RecentApplications } from "@/components/dashboard/recent-applications";
@@ -113,8 +114,9 @@ export default function Home() {
     <div className="pointer-events-none relative p-6 sm:p-8 max-h-130 sm:max-h-none overflow-hidden">
       <div className="space-y-6 sm:space-y-8">
         <DashboardStats />
+        <AnalyticsChart />
         <QuickActions />
-        <RecentApplications />
+        <RecentApplications demoMode={true} />
       </div>
 
       {/* INTERNAL FADE */}
