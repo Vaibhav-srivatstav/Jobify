@@ -1,6 +1,9 @@
 import { RegisterForm } from "@/components/auth/register-form"
 import Link from "next/link"
-
+export const metadata = {
+  title: "Register | Jobify",
+  description: "Make your Jobify account to start applying.",
+};
 export default function RegisterPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-background to-muted p-4">

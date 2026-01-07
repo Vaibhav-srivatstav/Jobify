@@ -8,10 +8,8 @@ import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Target, XCircle, CheckCircle2, MessageSquareQuote } from "lucide-react"
 
-// Receive the data prop here ↓
 export function AnalysisResults({ data }) {
   
-  // If no data comes from parent (fresh load/refresh), show empty state
   if (!data) {
     return (
       <Card className="border-border/50 h-full flex flex-col justify-center">

@@ -73,6 +73,7 @@ export function AnalyticsChart({ activityData, statusData }) {
                     cursor={{ fill: 'transparent' }}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                     itemStyle={{color:'#000000'}}
+                    labelStyle={{color:'#000000'}}
                     
                 />
                 <Bar dataKey="apps" fill="currentColor" radius={[4, 4, 0, 0]} className="fill-primary" barSize={30} />

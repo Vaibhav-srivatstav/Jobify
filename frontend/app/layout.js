@@ -11,7 +11,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Jobify AI - Smart Job Applications",
+  title: "Jobify AI - Smart Job Tracker",
   description:
     "AI-powered job application platform with ATS optimization and smart matching",
   generator: "v0.app",

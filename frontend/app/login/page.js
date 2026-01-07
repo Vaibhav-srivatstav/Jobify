@@ -1,6 +1,9 @@
 import { LoginForm } from "@/components/auth/login-form"
 import Link from "next/link"
-
+export const metadata = {
+  title: "Login | Jobify",
+  description: "Access your Jobify account to start applying.",
+};
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-background via-background to-muted p-4">

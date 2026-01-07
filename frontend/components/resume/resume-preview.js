@@ -19,7 +19,8 @@ export function ResumePreview({ refreshTrigger = 0 }) {
     setIsLoading(true)
     try {
         // 🔥 CLEAN REQUEST: No x-user-id, just credentials
-        const res = await fetch(`http://localhost:5000/api/resume/profile`, {
+        // UPDATED: Using Environment Variable
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/resume/profile`, {
             method: 'GET',
             credentials: 'include' // Sends JWT Cookie
         })

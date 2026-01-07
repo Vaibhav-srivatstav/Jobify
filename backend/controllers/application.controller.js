@@ -24,7 +24,6 @@ export const getHistory = async (req, res) => {
         // Get User ID from the URL query (e.g., ?userId=12345)
         const { userId } = req.query;
 
-        console.log("📥 Fetching history for User:", userId);
 
         if (!userId) {
             return res.status(400).json({ msg: "User ID missing" });
@@ -32,10 +31,9 @@ export const getHistory = async (req, res) => {
 
         // Find applications matching THIS user & Populate Job Details
         const apps = await Application.find({ userId })
-            .populate('jobId', 'title company location type postedAt description applyUrl') 
+            .populate('jobId', 'title company location type postedAt description companyLogo applyUrl') 
             .sort({ createdAt: -1 }); // Newest first
 
-        console.log(`✅ Found ${apps.length} applications`);
         res.json(apps);
 
     } catch (err) {
@@ -56,17 +54,13 @@ export const saveApplication = async (req, res) => {
 
         let jobId;
 
-        // --- STEP A: Handle Job Creation (if external) ---
         if (jobData._id && (jobData._id.toString().startsWith('linkedin_') || jobData._id.toString().startsWith('ext_'))) {
             
-            // Check if job already exists in DB (by URL) to avoid duplicates
             let existingJob = await Job.findOne({ applyUrl: jobData.applyUrl });
 
             if (existingJob) {
                 jobId = existingJob._id;
             } else {
-                // Create new Job in DB
-                // 🔥 IMPORTANT: We provide fallback strings (|| "...") to prevent DB Validation Errors
                 const newJob = new Job({
                     title: jobData.title || "Unknown Role",
                     company: jobData.company || "Unknown Company",
@@ -74,6 +68,7 @@ export const saveApplication = async (req, res) => {
                     type: jobData.type || "Full-time",
                     description: jobData.description || "Click 'Apply' to view full details on LinkedIn.", 
                     applyUrl: jobData.applyUrl,
+                    companyLogo: jobData.logo || "",
                     salary: jobData.salary || "Not specified",
                     postedAt: jobData.postedAt || new Date()
                 });
@@ -82,11 +77,9 @@ export const saveApplication = async (req, res) => {
                 jobId = savedJob._id;
             }
         } else {
-            // It's already an internal job ID
             jobId = jobData._id;
         }
 
-        // --- STEP B: Handle Application Creation ---
         
         // Check if User already applied/saved this job
         const existingApp = await Application.findOne({ userId, jobId });
@@ -118,7 +111,6 @@ export const updateStatus = async (req, res) => {
         const { id } = req.params; // Application ID
         const { status } = req.body;
 
-        console.log(`🔄 Moving Application ${id} to status: ${status}`);
 
         // Validate Status matches the new Schema Enum
         const validStatuses = ["APPLIED", "INTERVIEW", "OFFER", "REJECTED"];
@@ -137,11 +129,9 @@ export const updateStatus = async (req, res) => {
             return res.status(404).json({ success: false, msg: "Application not found" });
         }
 
-        console.log("✅ Database Updated Successfully");
         res.json({ success: true, application: updatedApp });
 
     } catch (err) {
-        console.error("❌ Update Status Error:", err);
         res.status(500).json({ success: false, msg: "Server Error" });
     }
 };

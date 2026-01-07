@@ -9,6 +9,7 @@ const JobSchema = new mongoose.Schema({
     description: { type: String, required: true },
     requiredSkills: [String], 
     applyUrl: String,
+    companyLogo: String,
     postedAt: { type: Date, default: Date.now }
 });
 

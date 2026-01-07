@@ -19,9 +19,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-black font-sans selection:bg-cyan-400 selection:text-black">
-      {/* HERO */}
       <header className="relative overflow-hidden bg-white dark:bg-black pt-16 pb-32">
-        {/* Neon cyan glow */}
         <div className="pointer-events-none absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-175 h-175 bg-cyan-400/30 rounded-full blur-[160px]" />
           <div className="absolute bottom-0 right-1/4 w-125 h-125 bg-cyan-500/20 rounded-full blur-[160px]" />
@@ -119,7 +117,6 @@ export default function Home() {
         <RecentApplications demoMode={true} />
       </div>
 
-      {/* INTERNAL FADE */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-white/80 dark:from-zinc-900/80 to-transparent" />
     </div>
   </div>

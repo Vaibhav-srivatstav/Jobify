@@ -32,12 +32,10 @@ export function JobSwiper({ jobs = [], onLoadMore, isLoadingMore }) {
     setTimeout(async () => {
       if (direction === "right") {
         
-        // 1. External Link Logic (Optional: Open immediately)
         if (currentJob.applyUrl && (currentJob.source === "LinkedIn" || currentJob._id.toString().startsWith("linkedin_"))) {
             window.open(currentJob.applyUrl, '_blank');
         }
 
-        // 2. 🔥 API CALL: Save to Database
         try {
             const storedUser = localStorage.getItem("user");
             if (!storedUser) {

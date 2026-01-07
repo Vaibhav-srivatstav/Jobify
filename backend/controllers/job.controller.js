@@ -135,12 +135,10 @@ export const searchLinkedIn = async (req, res) => {
       logo: job.companyLogo,
       salary: job.salary,
       postedAt: job.date,
-      logo: job.companyLogo,
       source: "LinkedIn",
       requiredSkills: [],
     }));
 
-    console.log(`✅ Returned ${cleanedJobs.length} jobs.`);
 
     res.json({
       success: true,
@@ -168,7 +166,6 @@ export const swipeRight = async (req, res) => {
     const { jobId } = req.body;
     const userId = req.userId;
 
-    // Block swiping on external LinkedIn jobs
     if (
       jobId.toString().startsWith("ext_") ||
       jobId.toString().startsWith("backup_")
