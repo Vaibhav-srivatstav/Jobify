@@ -1,12 +1,10 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-/** @type {import('next').NextConfig} */
 
+const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/proxy/:path*', 
-        destination: 'https://jobify-wss2.onrender.com/api/:path*', 
+        source: '/api/proxy/:path*',
+        destination: 'https://jobify-wss2.onrender.com/api/:path*',
       },
     ];
   },
