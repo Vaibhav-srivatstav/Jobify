@@ -3,7 +3,6 @@ import Application from "../models/Application.js";
 import CandidateProfile from "../models/CandidateProfile.js";
 import linkedIn from "linkedin-jobs-api";
 
-// --- CONSTANTS: SKILL EXTRACTION LIST ---
 const SKILL_KEYWORDS = [
   "JavaScript",
   "TypeScript",
@@ -75,7 +74,6 @@ const SKILL_KEYWORDS = [
 const extractSkills = (text) => {
   if (!text) return [];
   const lowerText = text.toLowerCase();
-  // Return unique skills found in text
   return [
     ...new Set(
       SKILL_KEYWORDS.filter((skill) => lowerText.includes(skill.toLowerCase()))
@@ -90,13 +88,9 @@ function capitalize(str) {
 
 export const searchLinkedIn = async (req, res) => {
   try {
-    // 1. Get frontend params
-    // 'page' here acts as our 'start index' (0, 20, 40...)
     const { keyword, location, jobType, remoteFilter, page = 0 } = req.body;
 
-    console.log(
-      `🚀 Fetching LinkedIn Batch | Start Index: ${page} | Limit: 20`
-    );
+   
 
     const queryOptions = {
       keyword: keyword || "Software Engineer",
@@ -105,8 +99,8 @@ export const searchLinkedIn = async (req, res) => {
       jobType: jobType === "all" ? "" : jobType || "full time",
       remoteFilter: remoteFilter === "all" ? "" : remoteFilter || "remote",
       experienceLevel: "entry level",
-      limit: "20", // 🔥 Exactly 20 jobs
-      page: page, // 🔥 Thanks to our fix, this is now the raw Start Index (0, 20, 40)
+      limit: "20",
+      page: page,
       sortBy: "recent",
     };
 
@@ -121,7 +115,6 @@ export const searchLinkedIn = async (req, res) => {
       });
     }
 
-    // 3. Map & Clean Data
     const cleanedJobs = response.map((job) => ({
       _id:
         "linkedin_" + (job.jobUrl ? job.jobUrl.split("?")[0] : Math.random()), // Generate stable ID from URL
@@ -143,11 +136,9 @@ export const searchLinkedIn = async (req, res) => {
     res.json({
       success: true,
       jobs: cleanedJobs,
-      // Tell frontend where to start next time (Current + 20)
       nextPage: parseInt(page) + 20,
     });
   } catch (error) {
-    console.error("Scraper Error:", error);
     res.status(500).json({ success: false, msg: "Failed to fetch jobs" });
   }
 };

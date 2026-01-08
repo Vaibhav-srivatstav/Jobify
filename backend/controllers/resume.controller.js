@@ -143,15 +143,12 @@ export const uploadResume = async (req, res) => {
 
     res.json({ success: true, profile });
   } catch (err) {
-    console.error(err);
     res.status(500).send("Server Error");
   } finally {
     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
       try {
         fs.unlinkSync(req.file.path);
-      } catch (e) {
-        console.error(e);
-      }
+      } catch (e) {}
     }
   }
 };

@@ -44,7 +44,6 @@ const modelProxy = new Proxy(
             // Check for Rate Limit (429) or Quota errors
             const isRateLimit =
               error.response?.status === 429 ||
-              error.response?.status === 503 ||
               error.message?.includes("429") ||
               error.message?.toLowerCase().includes("quota") ||
               error.message?.toLowerCase().includes("unavailable");

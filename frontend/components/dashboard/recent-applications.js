@@ -70,7 +70,6 @@ export function RecentApplications({ demoMode = false }) {
           }`
         );
         const data = await res.json();
-        console.log(data)
         if (Array.isArray(data)) {
           const formattedApps = data.slice(0, 5).map((app) => ({
             id: app._id,
@@ -85,7 +84,6 @@ export function RecentApplications({ demoMode = false }) {
           setApplications(formattedApps);
         }
       } catch (err) {
-        console.error("Failed to load recent applications", err);
       } finally {
         setLoading(false);
       }

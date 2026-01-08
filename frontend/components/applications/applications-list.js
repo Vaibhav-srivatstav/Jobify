@@ -41,8 +41,6 @@ const COLUMNS = {
 };
 
 export function ApplicationsList({ applications, setApplications }) {
-  console.log(applications);
-  // 🔥 NEW: Handle Delete Function
   const handleDelete = async (e, appId) => {
     e.stopPropagation(); // Stop drag event from firing
 
@@ -69,7 +67,6 @@ export function ApplicationsList({ applications, setApplications }) {
       }
       showProfessionalToast("Application removed");
     } catch (err) {
-      console.error("Delete failed", err);
       showProfessionalToast("Failed to remove. Restoring...");
       setApplications(previousApps); // Revert UI if API fails
     }

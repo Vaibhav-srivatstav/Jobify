@@ -38,7 +38,6 @@ export default function DashboardPage() {
         if (!storedUser) return;
         const user = JSON.parse(storedUser);
 
-        // Fetch History from Backend for Stats & Charts
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/application/history?userId=${
             user._id || user.id
@@ -50,7 +49,6 @@ export default function DashboardPage() {
           processData(apps);
         }
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -60,7 +58,6 @@ export default function DashboardPage() {
   }, []);
 
   const processData = (apps) => {
-    // 1. Calculate Summary Stats
     const counts = {
       total: apps.length,
       applied: apps.filter((a) => a.status === "APPLIED").length,
@@ -70,7 +67,6 @@ export default function DashboardPage() {
     };
     setStats(counts);
 
-    // 2. Prepare Pie Chart Data
     const statusChartData = [
       { name: "Applied", value: counts.applied, color: "#3b82f6" },
       { name: "Interview", value: counts.interview, color: "#a855f7" },
@@ -78,7 +74,6 @@ export default function DashboardPage() {
       { name: "Rejected", value: counts.rejected, color: "#ef4444" },
     ].filter((item) => item.value > 0);
 
-    // 3. Prepare Bar Chart Data
     const last7Days = [...Array(7)].map((_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));

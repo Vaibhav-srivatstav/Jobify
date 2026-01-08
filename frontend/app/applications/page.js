@@ -9,7 +9,6 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 FETCH DATA ON MOUNT
   useEffect(() => {
     const fetchApps = async () => {
       try {
@@ -30,7 +29,6 @@ export default function ApplicationsPage() {
           setApplications(data);
         }
       } catch (err) {
-        console.error("Failed to fetch applications", err);
       } finally {
         setLoading(false);
       }
