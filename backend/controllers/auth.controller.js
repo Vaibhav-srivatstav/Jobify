@@ -13,7 +13,7 @@ const sendTokenResponse = async (user, res) => {
         { expiresIn: '30d' }
     );
 
-    const isProd = process.env.NODE_ENV === 'production';
+ 
 
     res.cookie('token', token, {
         httpOnly: true,
