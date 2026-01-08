@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 // CORS
 app.use(cors({
   origin: [
-    'https://jobify-nu-ecru.vercel.app'
+    'https://jobify-nu-ecru.vercel.app',
     'http://localhost:3000',
   ],
   
