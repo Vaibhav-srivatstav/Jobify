@@ -9,16 +9,16 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const sendTokenResponse = async (user, res) => {
     const token = jwt.sign(
         { userId: user._id.toString() },
-        process.env.JWT_SECRET || 'secret',
+        process.env.JWT_SECRET || 'jwt1234567890',
         { expiresIn: '30d' }
     );
 
-const isProd = process.env.NODE_ENV === 'production';
+const isProd = process.env.NODE_ENV === "production";
 
     res.cookie('token', token, {
         httpOnly: true,
         secure: isProd, 
-        sameSite: 'None',
+        sameSite: isProd ? 'none' : 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000 
     });
 
