@@ -13,8 +13,9 @@ const sendTokenResponse = async (user, res) => {
         { expiresIn: '30d' }
     );
 
-const isProd = process.env.NODE_ENV === "production";
+    const isProd = process.env.NODE_ENV === "production";
 
+    // We still set the cookie here for Postman/Direct API usage
     res.cookie('token', token, {
         httpOnly: true,
         secure: isProd, 
@@ -36,6 +37,7 @@ const isProd = process.env.NODE_ENV === "production";
 
     res.status(200).json({
         success: true,
+        token: token, 
         user: {
             id: user._id,
             name: user.name,
