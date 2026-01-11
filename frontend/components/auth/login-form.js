@@ -32,7 +32,7 @@ export function LoginForm() {
 
     try {
       // ✅ CHANGED: Fetch to internal Next.js API Route (The Bridge)
-      const res = await fetch(`/api/auth/login`, {
+      const res = await fetch(`/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -57,7 +57,7 @@ export function LoginForm() {
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       // ✅ CHANGED: Fetch to internal Next.js API Route (The Bridge)
-      const res = await fetch(`/api/auth/google`, {
+      const res = await fetch(`/api/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credentialResponse.credential }),
