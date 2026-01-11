@@ -15,7 +15,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, LogIn } from "lucide-react"; // Removed Menu/X icons as we use custom SVG now
+import { LogOut, LogIn } from "lucide-react";
 import logo from "../public/logo.png";
 import logo2 from "../public/logo2.png";
 import { showProfessionalToast } from "./customToast";
@@ -26,13 +26,13 @@ export function Header() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  
+   
   const [userName, setUserName] = useState("User");
   const [userAvatar, setUserAvatar] = useState(""); 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => setMounted(true), []);
-  
+   
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -48,8 +48,9 @@ export function Header() {
 
     const fetchUser = async () => {
       try {
+        // Keeps the session check pointing to internal API for consistency
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
+          `/api/me`, // Optional: You might want to create a bridge for this too later
           { credentials: "include" }
         );
         
@@ -73,17 +74,22 @@ export function Header() {
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
+  // ✅ UPDATED LOGOUT FUNCTION
   const handleLogout = async () => {
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`, {
-        method: "GET",
-        credentials: "include",
+      // 1. Call Next.js API Route (The Bridge) to delete the cookie
+      await fetch("/api/logout", {
+        method: "POST", // Changed to POST for security standard
       });
       
+      // 2. Clear Local Storage
       localStorage.removeItem("user");
+      
+      // 3. Reset State
       setIsLoggedIn(false);
       setUserName("User");
       setUserAvatar(""); 
+      
       showProfessionalToast("Logged out");
       router.push("/login");
     } catch (err) {
@@ -163,7 +169,7 @@ export function Header() {
                 {/* Stars */}
                 <div className={`absolute bg-white rounded-full w-[5px] h-[5px] transition-all duration-400 left-[2.5em] top-[0.5em] ${isLight ? "opacity-0" : "opacity-100"}`}></div>
                 <div className={`absolute bg-white rounded-full w-[5px] h-[5px] transition-all duration-400 left-[2.2em] top-[1.2em] ${isLight ? "opacity-0" : "opacity-100"}`}></div>
-                <div className={`absolute bg-white rounded-full w-[5px] h-[5px] transition-all duration-400 left-[3em] top-[0.9em]   ${isLight ? "opacity-0" : "opacity-100"}`}></div>
+                <div className={`absolute bg-white rounded-full w-[5px] h-[5px] transition-all duration-400 left-[3em] top-[0.9em]    ${isLight ? "opacity-0" : "opacity-100"}`}></div>
                 
                 {/* Cloud */}
                 <svg 
@@ -227,7 +233,7 @@ export function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* NEW ANIMATED HAMBURGER MENU */}
+            {/* ANIMATED HAMBURGER MENU */}
             {isLoggedIn && (
               <label className="md:hidden cursor-pointer text-black dark:text-white text-[12px] h-[3em] flex items-center">
                 <input 
