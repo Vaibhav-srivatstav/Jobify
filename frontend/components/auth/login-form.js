@@ -31,11 +31,11 @@ export function LoginForm() {
     setError("");
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/login`, {
+      // ✅ CHANGED: Fetch to internal Next.js API Route (The Bridge)
+      const res = await fetch(`/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
-        credentials: "include",
       });
 
       const data = await res.json();
@@ -56,11 +56,11 @@ export function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/google`, {
+      // ✅ CHANGED: Fetch to internal Next.js API Route (The Bridge)
+      const res = await fetch(`/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: credentialResponse.credential }),
-        credentials: "include",
       });
 
       const data = await res.json();
