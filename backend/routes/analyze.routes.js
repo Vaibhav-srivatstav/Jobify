@@ -6,6 +6,6 @@ import multer from 'multer';
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/match', auth, analyzeMatch); 
-router.post('/match-file', auth, upload.single('resume'), analyzeMatchWithFile);
+router.post('/match', analyzeMatch); 
+router.post('/match-file', upload.single('resume'), analyzeMatchWithFile);
 export default router;
