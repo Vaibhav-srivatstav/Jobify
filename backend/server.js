@@ -19,7 +19,7 @@ app.set('trust proxy', 1);
 // CORS
 app.use(cors({
   origin:['https://jobify-nu-ecru.vercel.app',
-          'https://jobify-1-m5jx.onrender.com',
+          'https://jobify-1-vqjh.onrender.com',
          ],
   credentials: true 
 }));
