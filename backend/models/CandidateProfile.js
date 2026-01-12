@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const CandidateProfileSchema = new mongoose.Schema({
-    userId: { type: String },
+    userId: { type: String, required: true },
     name: String,
     email: String,
     phone: String,
