@@ -13,8 +13,8 @@ export default function Home() {
   const router = useRouter();
 
   const handleClick = () => {
-    const token = localStorage.getItem("auth_token");
-    router.push(token ? "/dashboard" : "/login");
+    const user = localStorage.getItem("user");
+    router.push(user ? "/dashboard" : "/login");
   };
 
   return (
