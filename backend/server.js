@@ -17,6 +17,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+app.set("trust proxy", 1);
 app.use(express.json({ limit: '50mb' })); 
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
@@ -25,6 +26,10 @@ app.use(cookieParser());
 app.use(cors({
   origin: [
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+    'http://localhost:4000',
+    'http://localhost:5173',
     'https://jobify-nu-ecru.vercel.app'
   ],
   

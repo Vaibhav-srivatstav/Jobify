@@ -12,9 +12,7 @@ const sendTokenResponse = async (user, res) => {
         process.env.JWT_SECRET || 'secret',
         { expiresIn: '30d' }
     );
-
- 
-
+    const isProd = process.env.NODE_ENV === 'production';
     res.cookie('token', token, {
         httpOnly: true,
         secure: isProd,                
